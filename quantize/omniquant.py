@@ -27,6 +27,7 @@ def get_named_linears(module):
 
 
 def add_new_module(name, original_module, added_module):
+    # eg: name: block_sparse_moe.experts.7.w3, original_module: MixtralDecoderLayer, added_module: QuantLinear
     levels = name.split('.')
     if len(levels) > 1:
         mod_ = original_module
@@ -37,7 +38,7 @@ def add_new_module(name, original_module, added_module):
                 mod_ = getattr(mod_, levels[l_idx])
         setattr(mod_, levels[-1], added_module)
     else:
-        setattr(original_module, name, added_module)     
+        setattr(original_module, name, added_module)  
 
 def omniquant(
     lm,
@@ -51,7 +52,10 @@ def omniquant(
     
     # move embedding layer and first layer to target device
     model = lm.model
+    logger.info(f"model: {model}")
+    logger.info(f"model.name: {model.__class__.__name__}")
     dev = lm.device
+    logger.info(f"dev: {dev}")
     use_cache = model.config.use_cache
     model.config.use_cache = False
     is_llama = False
@@ -190,27 +194,36 @@ def omniquant(
     
     
     for i in range(len(layers)):
+        # if i == 0 or i == 1:
+        #     args.epochs = 15
+        # else:
+        #     args.epochs = 5
         logger.info(f"=== Start quantize layer {i} ===")
         layer = layers[i].to(dev)
         if "mixtral" in args.net.lower():  
             # for mixtral, we only leverage lwc, which can be achieve by simply replace Linear with QuantLinear
             qlayer = copy.deepcopy(layer)
             for name, module in qlayer.named_modules():
+                # self_attn.q_proj, self_attn.k_proj, self_attn.v_proj, self_attn.o_proj, block_sparse_moe.experts.{i}.w[1,2,3]
                 if isinstance(module,torch.nn.Linear) and not "gate" in name:       # do not quantize gate
+                    # print(f"name: {name}")
+                    if name == "self_attn.q_proj" or name == "self_attn.k_proj" or name == "self_attn.v_proj" or name == "self_attn.o_proj":
+                        args.weight_quant_params["group_size"] = 128
+                    else:
+                        args.weight_quant_params["group_size"] = None
+                    
                     quantlinear = QuantLinear(module, args.weight_quant_params, args.act_quant_params)
                     add_new_module(name, qlayer, quantlinear)    
         else:
             qlayer = DecoderLayer(lm.model.config, layer, args)
         qlayer = qlayer.to(dev)
-
-        
         # obtain output of full-precision model
         set_quant_state(qlayer, weight_quant=False, act_quant=False)
         if args.epochs > 0:
             with torch.no_grad():
                 with torch.cuda.amp.autocast():
                     for j in range(args.nsamples):
-                        fp_inps[j] = qlayer(fp_inps[j].unsqueeze(0), attention_mask=attention_mask,position_ids=position_ids)[0]
+                        fp_inps[j] = qlayer(fp_inps[j].unsqueeze(0), attention_mask=attention_mask,position_ids=position_ids)[0] # 当前层的输出是下一层的输入，所以更新了 fp_inps[j]
                         if args.aug_loss:
                             fp_inps_2[j] = qlayer(quant_inps[j].unsqueeze(0), attention_mask=attention_mask,position_ids=position_ids)[0]
         # init smooth parameters
@@ -255,7 +268,7 @@ def omniquant(
                     index = j * args.batch_size
                     # obtain output of quantization model
                     with traincast():
-                        smooth_and_quant_temporary(qlayer, args)
+                        smooth_and_quant_temporary(qlayer, args) # 这里对权重的副本进行了smooth和模拟量化
                         quant_out = qlayer(quant_inps[index:index+args.batch_size,], attention_mask=attention_mask_batch,position_ids=position_ids)[0]
                         loss = loss_func(fp_inps[index:index+args.batch_size,], quant_out)
                         if args.aug_loss:
@@ -276,7 +289,7 @@ def omniquant(
             del optimizer
         qlayer.half() 
         # real smooth and quantization
-        smooth_and_quant_inplace(qlayer, args)
+        smooth_and_quant_inplace(qlayer, args) # 这里对权重进行了smooth和模拟量化
         if args.epochs>0:
             # update input of quantization model
             with torch.no_grad():

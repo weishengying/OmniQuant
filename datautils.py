@@ -34,18 +34,26 @@ def get_pile(nsamples, seed, seqlen, model):
 
 def get_wikitext2(nsamples, seed, seqlen, model):
     print("get_wikitext2")
-    traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train')
-    testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test')
+    # 从 hugging face 中下载，最好加上代理： export HF_ENDPOINT=https://hf-mirror.com
+    # traindata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='train', cache_dir="/mnt/infra/weishengying/dataset")
+    # testdata = load_dataset('wikitext', 'wikitext-2-raw-v1', split='test', cache_dir="/mnt/infra/weishengying/dataset")
+
+    # 从本地文件中 load 数据集
+    wiki_data_set = load_dataset('/mnt/project/skyllm/weishengying/dataset/wikitext/wikitext-2-raw-v1/0.0.0/4c6a41deac4b4d5d', data_files={'train': 'wikitext-train.arrow', 'test': 'wikitext-test.arrow'})
+    traindata = wiki_data_set["train"]
+    testdata = wiki_data_set["test"]
+    print("get_wikitext2 done")
 
     tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
     trainenc = tokenizer("\n\n".join(traindata['text']), return_tensors='pt')
     testenc = tokenizer("\n\n".join(testdata['text']), return_tensors='pt')
 
+    print(f"trainenc.input_ids: {trainenc.input_ids.shape}")
     
     random.seed(seed)
     trainloader = []
     for _ in range(nsamples):
-        i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1)
+        i = random.randint(0, trainenc.input_ids.shape[1] - seqlen - 1) # trainenc.input_ids.shape: (1, 2811495)
         j = i + seqlen
         inp = trainenc.input_ids[:, i:j]
         tar = inp.clone()

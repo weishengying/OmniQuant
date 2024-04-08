@@ -210,7 +210,7 @@ def main():
     parser.add_argument("--group_size", type=int, default=None)
     parser.add_argument("--alpha", type=float, default=0.5)
     parser.add_argument("--let_lr", type=float, default=5e-3)
-    parser.add_argument("--lwc_lr", type=float, default=1e-2)
+    parser.add_argument("--lwc_lr", type=float, default=8e-2)
     parser.add_argument("--wd", type=float, default=0)
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--let",default=False, action="store_true",help="activate learnable equivalent transformation")
@@ -262,6 +262,9 @@ def main():
         args.net = args.model.split('/')[-1]
     # assert args.net in net_choices
     args.model_family = args.net.split('-')[0]
+    logger.info(f"net: {args.net}")
+    logger.info(f"model_family: {args.model_family}")
+    logger.info(f"=== load model ===")
     lm = LMClass(args)
     lm.seqlen = 2048
     lm.model.eval()
@@ -282,7 +285,7 @@ def main():
     args.act_quant_params = {
         "n_bits":  args.abits,
         "per_channel_axes": [],
-        "symmetric": False,
+        "symmetric": True,
         "dynamic_method": args.a_dynamic_method,
     }
     args.q_quant_params = {
@@ -367,9 +370,30 @@ def main():
                     del module.fc1_smooth_shift           
         lm.model.save_pretrained(args.save_dir)  
         lm.tokenizer.save_pretrained(args.save_dir) 
-    evaluate(lm, args,logger)
+    # evaluate(lm, args,logger)
 
 
 if __name__ == "__main__":
     print(sys.argv)
     main()
+'''
+nohup python main.py --model  /mnt/project/skyllm/weishengying/AutoAWQ/examples/moe_search_summary_32k_0402-AWQ-Scale \
+                --epochs 20 --output_dir ./log/moe_search_summary_32k_0402-AWQ-Scale-and_Omini_2 --wbits 4 --abits 16 --lwc \
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
+                --save_dir ./log/moe_search_summary_32k_0402-AWQ-Scale-and_Omini_2/w4a16g128_ckpt  &
+
+reuse
+nohup python main.py --model  /mnt/project/skyllm/weishengying/AutoAWQ/examples/Online-moe-search-summary-0319-AWQ-Scale-Only \
+                --epochs 20 --output_dir ./log/Online-moe-search-summary-0319-AWQ-Scale-and_Omini --wbits 4 --abits 16 --lwc \
+                --resume  ./log/Online-moe-search-summary-0319-AWQ-Scale-and_Omini/omni_parameters.pth 
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b\
+                --save_dir ./log/Online-moe-search-summary-0319-AWQ-Scale-and_Omini/w4a16g128_ckpt_v2  &
+
+python main.py --model /mnt/project/skyllm/weishengying/model/skywork_mixtral_moe_awq_apply_scale_dynamic \
+                --epochs 20 --output_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic --wbits 4 --abits 16 --lwc \
+                --disable_zero_point --symmetric --save_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic/w4a16g128_ckpt --aug_loss --multigpu 
+
+python main.py --model /mnt/project/skyllm/weishengying/model/Online-8x7B-MoE-0218/iter_0006400 \
+                --epochs 20 --output_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic --wbits 8 --abits 8 --lwc \
+                --disable_zero_point --symmetric --save_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic/w4a16g128_ckpt --aug_loss --multigpu 
+'''

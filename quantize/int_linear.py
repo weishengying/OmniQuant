@@ -46,18 +46,18 @@ class QuantLinear(nn.Module):
     
     
     def forward(self, input: torch.Tensor):
-        if self.use_temporary_parameter:
-            weight = self.temp_weight
+        if self.use_temporary_parameter: # 在量化时，这个值会提前设为 true
+            weight = self.temp_weight # temp_weight 已经进行了量化和反量化
             bias = self.temp_bias
         elif self.use_weight_quant:
-            weight = self.weight_quantizer(self.weight)
+            weight = self.weight_quantizer(self.weight) # 对权重进行量化和反量化
             bias = self.bias
         else:
             weight = self.weight
             bias = self.bias
 
         if self.use_act_quant and not self.disable_input_quant:
-            input = self.act_quantizer(input)
+            input = self.act_quantizer(input) # 对激活进行量化和反量化
         
         out = self.fwd_func(input, weight, bias, **self.fwd_kwargs)
 

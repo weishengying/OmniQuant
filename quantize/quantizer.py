@@ -16,11 +16,11 @@ def round_ste(x: torch.Tensor):
     """
     Implement Straight-Through Estimator for rounding operation.
     """
-    return (x.round() - x).detach() + x
+    return (x.round() - x).detach() + x # 四舍五入，同时断开梯度信息并且不影响原始张量的梯度 （直通估计器）
 
 
 
-class UniformAffineQuantizer(nn.Module):
+class UniformAffineQuantizer(nn.Module): # 均匀映射 量化器
     def __init__(
         self,
         n_bits: int = 8,
@@ -50,7 +50,7 @@ class UniformAffineQuantizer(nn.Module):
             self.qmin = 0
             self.qmax = 2 ** (n_bits) - 1
         self.per_channel_axes = per_channel_axes
-        self.metric = metric
+        self.metric = metric # 常见的是 minmax
         self.cluster_counts = None
         self.cluster_dim = None
 
@@ -74,7 +74,7 @@ class UniformAffineQuantizer(nn.Module):
                     self.deficiency = group_size - self.deficiency
                     assert self.symmetric   # support for mlc-llm symmetric quantization
             else:
-                dim1 = shape[0]
+                dim1 = shape[0] # 对于激活来说， dim1 就是 per-token， 对于 weight 来说，dim1 是 per-channnel，weight shape 是 （out_features, in_features）
             self.upbound_factor = nn.Parameter(torch.ones((dim1,1))*init_value)
             self.lowbound_factor = nn.Parameter(torch.ones((dim1,1))*init_value)
         self.sigmoid = nn.Sigmoid()
@@ -115,7 +115,7 @@ class UniformAffineQuantizer(nn.Module):
         return x_dequant
     
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor): # 传入进来的可能是激活或者weight，本类是一个量化器，对激活或者weight进行量化
         if self.n_bits >= 16 or not self.enable:
             return x
         if self.metric == "fix0to1":
@@ -126,7 +126,7 @@ class UniformAffineQuantizer(nn.Module):
         else:
             raise NotImplementedError()   
 
-        x_dequant = self.fake_quant(x, self.scale, self.round_zero_point)
+        x_dequant = self.fake_quant(x, self.scale, self.round_zero_point) # 量化和反量化
         return x_dequant
 
     def per_token_dynamic_calibration(self, x):
@@ -141,7 +141,7 @@ class UniformAffineQuantizer(nn.Module):
         xmin = x.amin(reduce_shape, keepdim=True)
         xmax =  x.amax(reduce_shape, keepdim=True)
         if self.lwc:
-            xmax = self.sigmoid(self.upbound_factor)*xmax
+            xmax = self.sigmoid(self.upbound_factor)*xmax # 并不是直接学习 xmax，而且学习 upbound_factor 来调节 xmax， sigmoid 函数也是可导的，优化器可以学习
             xmin = self.sigmoid(self.lowbound_factor)*xmin
         if self.symmetric:
             abs_max = torch.max(xmax.abs(),xmin.abs())
