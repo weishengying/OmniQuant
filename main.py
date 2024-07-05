@@ -45,7 +45,8 @@ net_choices = [
     "llava-llama-2-13b-chat-lightning-preview",
     "falcon-180b",
     "falcon-7b",
-    "mixtral-8x7b"
+    "mixtral-8x7b",
+    "deepseek-v2",
 ]
 
 
@@ -187,7 +188,6 @@ def evaluate(lm, args, logger):
 
 def main():
     import argparse
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, help="model name of model path")
     parser.add_argument("--cache_dir", default="./cache", type=str, help="cache dir of dataset, leading to faster debug")
@@ -327,6 +327,7 @@ def main():
         logger.info("=== start quantization ===")
         tick = time.time()     
         # load calibration dataset
+        #import pdb;pdb.set_trace()
         cache_dataloader = f'{args.cache_dir}/dataloader_{args.model_family}_{args.calib_dataset}_{args.nsamples}.cache'
         if os.path.exists(cache_dataloader):
             dataloader = torch.load(cache_dataloader)
@@ -339,6 +340,7 @@ def main():
                 model=args.model,
                 seqlen=lm.seqlen,
             )
+            print(f"dataloader: {len(dataloader)}")
             torch.save(dataloader, cache_dataloader)    
         act_scales = None
         act_shifts = None
@@ -377,10 +379,33 @@ if __name__ == "__main__":
     print(sys.argv)
     main()
 '''
-nohup python main.py --model  /mnt/project/skyllm/weishengying/AutoAWQ/examples/moe_search_summary_32k_0402-AWQ-Scale \
-                --epochs 20 --output_dir ./log/moe_search_summary_32k_0402-AWQ-Scale-and_Omini_2 --wbits 4 --abits 16 --lwc \
+nohup python main.py --model /mnt/shared/online/search/search_summary/search_agent_moe_v240704/0000200_hf \
+                --epochs 20 --output_dir ./log/search_agent_moe_v240704 --wbits 4 --abits 16 --lwc \
                 --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
-                --save_dir ./log/moe_search_summary_32k_0402-AWQ-Scale-and_Omini_2/w4a16g128_ckpt  &
+                --save_dir /mnt/shared/online/search/search_summary/search_agent_moe_v240704/0000200_hf_omni_quant &
+
+
+nohup python main.py --model /mnt/shared/online/Mixtral-8x7B-Instruct-v0.1 \
+                --epochs 20 --output_dir ./log/Mixtral-8x7B-Instruct-v0.1 --wbits 4 --abits 16 --lwc \
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
+                --save_dir /mnt/shared/online/Mixtral-8x7B-Instruct-v0.1_q &
+
+nohup python main.py --model /mnt/shared/test/mixtral_8x7b_4k_agent_vllmConvert_vocabLimit_0323_iter240 \
+                --epochs 20 --output_dir ./log/mixtral_8x7b_4k_agent_vllmConvert_vocabLimit_0323_iter240 --wbits 4 --abits 16 --lwc \
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
+                --save_dir /mnt/shared/test/mixtral_8x7b_4k_agent_vllmConvert_vocabLimit_0323_iter240_q &
+
+
+nohup python main.py --model  /mnt/shared/online/linky_mistral8x7b_appen1118_sft_full_v1p3 \
+                --epochs 20 --output_dir ./log/linky_mistral8x7b_appen1118_sft_full_v1p3 --wbits 4 --abits 16 --lwc \
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
+                --save_dir /mnt/shared/online/linky_mistral8x7b_appen1118_sft_full_v1p3_Omniquant &
+
+
+nohup python main.py --model  /mnt/shared/online/chat/moe_0321_lichang \
+                --epochs 20 --output_dir ./log/moe_0321_lichang --wbits 4 --abits 16 --lwc \
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
+                --save_dir /mnt/shared/online/chat/moe_0321_lichang_Omniquant &
 
 reuse
 nohup python main.py --model  /mnt/project/skyllm/weishengying/AutoAWQ/examples/Online-moe-search-summary-0319-AWQ-Scale-Only \
@@ -389,11 +414,15 @@ nohup python main.py --model  /mnt/project/skyllm/weishengying/AutoAWQ/examples/
                 --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b\
                 --save_dir ./log/Online-moe-search-summary-0319-AWQ-Scale-and_Omini/w4a16g128_ckpt_v2  &
 
-python main.py --model /mnt/project/skyllm/weishengying/model/skywork_mixtral_moe_awq_apply_scale_dynamic \
-                --epochs 20 --output_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic --wbits 4 --abits 16 --lwc \
-                --disable_zero_point --symmetric --save_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic/w4a16g128_ckpt --aug_loss --multigpu 
 
-python main.py --model /mnt/project/skyllm/weishengying/model/Online-8x7B-MoE-0218/iter_0006400 \
-                --epochs 20 --output_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic --wbits 8 --abits 8 --lwc \
-                --disable_zero_point --symmetric --save_dir ./log/skywork_mixtral_moe_awq_apply_scale_dynamic/w4a16g128_ckpt --aug_loss --multigpu 
+
+nohup python main.py --model /mnt/zhangliqi/model/moe_as_fantasky_mixtral_mem_v1.1_full_sft_0524 \
+                --epochs 20 --output_dir ./log/moe_as_fantasky_mixtral_mem_v1.1_full_sft_0524_quant --wbits 4 --abits 16 --lwc \
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
+                --save_dir /mnt/zhangliqi/model/moe_as_fantasky_mixtral_mem_v1.1_full_sft_0524_quant &
+
+nohup python main.py --model /mnt/zhangliqi/model/moe_as_fantasky_mixtral_mix_manual_v1_full_sft_0530 \
+                --epochs 20 --output_dir ./log/moe_as_fantasky_mixtral_mix_manual_v1_full_sft_0530_quant --wbits 4 --abits 16 --lwc \
+                --group_size 128 --disable_zero_point --symmetric --aug_loss --net mixtral-8x7b \
+                --save_dir /mnt/zhangliqi/model/moe_as_fantasky_mixtral_mix_manual_v1_full_sft_0530_quant &
 '''

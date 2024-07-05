@@ -25,14 +25,15 @@ class LMClass(BaseLM):
         )
         if hasattr(config, 'quantization_config'):
             delattr(config, "quantization_config")
-        self.tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False,legacy=False)
+        # self.tokenizer = AutoTokenizer.from_pretrained(args.model, use_fast=False,legacy=False)
+        self.tokenizer = AutoTokenizer.from_pretrained(args.model)
         self.model = AutoModelForCausalLM.from_pretrained(args.model, config=config, device_map='cpu',torch_dtype=config.torch_dtype, trust_remote_code=True)
         # self.model = AutoModelForCausalLM.from_pretrained(args.model, config=config, device_map='cpu',torch_dtype=torch.float16)
         self.seqlen = self.model.config.max_position_embeddings
         self.model.eval()
         self.vocab_size = self.tokenizer.vocab_size
         print("vocab size: ", self.vocab_size)
-
+        print(f"xxxxxxxxxxxxxxxx{self.tokenizer}")
     @property
     def eot_token(self) -> str:
         return self.tokenizer.eos_token

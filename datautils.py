@@ -42,9 +42,19 @@ def get_wikitext2(nsamples, seed, seqlen, model):
     wiki_data_set = load_dataset('/mnt/project/skyllm/weishengying/dataset/wikitext/wikitext-2-raw-v1/0.0.0/4c6a41deac4b4d5d', data_files={'train': 'wikitext-train.arrow', 'test': 'wikitext-test.arrow'})
     traindata = wiki_data_set["train"]
     testdata = wiki_data_set["test"]
+    # import os
+    # import json
+    # current_directory = os.getcwd()
+    # with open(os.path.join(current_directory,"datasets/wiki_train.json"),'r') as r:
+    #     traindata = json.load(r)['data']
+    # with open(os.path.join(current_directory,"datasets/wiki_test.json"),'r') as r:
+    #     testdata = json.load(r)['data']
     print("get_wikitext2 done")
-
-    tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False)
+    import pdb;pdb.set_trace()
+    tokenizer = AutoTokenizer.from_pretrained(model, use_fast=False, trust_remote_code=True)
+    print(f"+++++++++++{tokenizer}")
+    # trainenc = tokenizer("\n\n".join(traindata), return_tensors='pt')
+    # testenc = tokenizer("\n\n".join(testdata), return_tensors='pt')
     trainenc = tokenizer("\n\n".join(traindata['text']), return_tensors='pt')
     testenc = tokenizer("\n\n".join(testdata['text']), return_tensors='pt')
 

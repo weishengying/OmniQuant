@@ -27,16 +27,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
 cache_dir = './cache'
 seqlen = 2048
 seed = 2
-# model_path = "/mnt/infra/weishengying/OmniQuant/log/skywork_mixtral-8x7B-0218/W4A16"
-# model_path = "/mnt/infra/weishengying/model/skywork_mixtral"
-# model_path = "/mnt/infra/weishengying/smoothquant/examples/skywork_mixtral_smooth"
-# model_path = "/mnt/infra/weishengying/OmniQuant/log/skywork_mixtral-8x7B-0218_exclude_w2/W4A16"
-# model_path = "/mnt/infra/weishengying/OmniQuant/log/skywork_mixtral-8x7B-0218_w4ade16g128/W4A16G128"
-# model_path = "/mnt/infra/weishengying/OmniQuant/log/skywork_mixtral-8x7B-0218-smooth-w4a16g128/W4A16G128"
-model_path = "/mnt/project/skyllm/weishengying/AutoAWQ/examples/skywork_mixtral-AutoAWQ-Scale-Only"
-# model_path = "/mnt/project/skyllm/weishengying/model/moe_awq_apply_scale_dynamic"
-# model_path = "/mnt/infra/weishengying/model/skywork_mixtral"
-# model_path = "/mnt/lichang.zhang/moe_20240218/0205-v4-ni-c-lr-1e-6-hg/iter_0006400"
+model_path = "/mnt/shared/online/rewrite/moe_human_refine_v1v2v3_0218base_fix_iter109_hf_awq_scale_and_Omni"
+model_path = "/mnt/shared/online/rewrite/moe_human_refine_v1v2v3_0218base_fix_iter109_hf_test_quant"
 model_family = "Mixtral"
 
 

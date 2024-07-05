@@ -99,6 +99,12 @@ def omniquant(
         model.model.embed_tokens = model.model.embed_tokens.to(dev)
         model.model.norm = model.model.norm.to(dev)
         layer_name_prefix = "model.layers"
+    elif "deepseek-v2" in args.net.lower():
+        is_llama = True   # same to llama except ffn
+        layers = model.model.layers
+        model.model.embed_tokens = model.model.embed_tokens.to(dev)
+        model.model.norm = model.model.norm.to(dev)
+        layer_name_prefix = "model.layers"
     else:
         raise ValueError("Only support for opt/llama/Llama-2/falcon/mixtral now")
     
@@ -194,10 +200,10 @@ def omniquant(
     
     
     for i in range(len(layers)):
-        # if i == 0 or i == 1:
-        #     args.epochs = 15
-        # else:
-        #     args.epochs = 5
+        if i == 0 or i == 1:
+            args.epochs = 15
+        else:
+            args.epochs = 5
         logger.info(f"=== Start quantize layer {i} ===")
         layer = layers[i].to(dev)
         if "mixtral" in args.net.lower():  
@@ -287,7 +293,7 @@ def omniquant(
                 logger.info(f"layer {i} iter {epochs} loss:{loss_mean} norm:{norm_mean} max memory_allocated {torch.cuda.max_memory_allocated(lm._device) / 1024**2} ")
             clear_temp_variable(qlayer)
             del optimizer
-        qlayer.half() 
+        qlayer.half()
         # real smooth and quantization
         smooth_and_quant_inplace(qlayer, args) # 这里对权重进行了smooth和模拟量化
         if args.epochs>0:
